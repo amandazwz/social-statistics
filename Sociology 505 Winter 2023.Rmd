@@ -1,0 +1,182 @@
+---
+title: "Sociology 505 Winter 2023"
+output: html_notebook
+---
+
+```{r message=FALSE}
+#Loading required libraries
+library(dplyr)
+library(ggplot2)
+library(modelsummary)
+```
+
+
+```{r}
+#importing data into R
+Districtdata=read.csv("districtdata2023.csv")
+```
+
+# Bivariate Models
+## Part 1
+Describe the linear relationship between EXPEND and INCOME (where EXPEND is predicted by INCOME)
+
+- a) Describe/report details about the univariate distributions of the two variables (EXPEND and INCOME); include at least on measure of central tendency and one measure of variability; produce a bivariate plot of association of EXPEND and INCOME.
+
+```{r}
+#summary of the data (measure of central tendancy:mean and median; measure of variablility standard deviation)
+stargazer::stargazer(Districtdata[3:4],type = "text",median = T,min.max = F)
+
+#plotting distribution of the data
+#Density plot for Expend
+ggplot(Districtdata)+
+  geom_density(aes(expend),col="red")+
+  labs(title = "Expend Density Plot",x="Expend",y="Density")
+#Density plot for Income
+ggplot(Districtdata)+
+  geom_density(aes(income),col="blue")+
+  labs(title = "Income Density Plot",x="Income",y="Density")
+
+#bivariet scatter plot of Income aginist Expend
+ggplot(Districtdata,aes(x=income,y=expend))+
+  geom_point(color="green")+
+  labs(title = "Scatter Plot of Income Aginist Expend",
+       x="Income",y="Expend")
+
+```
+
+Both variables are normaly distributed based on the shape of the curve of the density plots. The bivariet scatter plot indicates a positive linear relationship between income and expenditure. This means the more a person earns the more they spend.
+
+- b) Estimate and describe the bivariate linear model relation between the two variables using ML estimation 
+(EXPEND is the outcome variable)
+```{r}
+#Creating a linear model
+Model=lm(expend~income,data = Districtdata)
+coefficients(Model)
+```
+
+$Expend = 1546.36 + 0.0302Income$
+ 
+Based on the estimated model the when there is no income an individual is expected to spend 1546.36 dollars. when income increases by   unit the expenditure increases by 0.0302
+
+- c) Calculate conditional mean of expenditures based on the model if the per capita income is 25000 or if it is 
+35000 
+```{r}
+
+paste("2500 Income: Expend",
+      round(predict(Model,newdata = data.frame(income=25000)),2))
+
+paste("2500 Income: Expend",
+      round(predict(Model,newdata = data.frame(income=35000)),2))
+```
+
+Expend 2301.29
+Expend 2603.26
+
+- d) look at the data and calculate the raw response residual/deviation for CountyID #73600 and CountyID #41500. What does the deviation tell you about school expenditure in County 73600 and 41500 with respect to 
+the estimated equation?
+```{r}
+data=data.frame(CountyID=Districtdata$countyid,Residual=residuals(Model))
+data[data$CountyID==73600,]
+data[data$CountyID==41500,]
+```
+
+73600ID:315.55
+41500ID: 635.9
+
+- e) Calculate the median value of income and run the same model from ( b ) but select only those cases that are below the median value and again for only those observed cases above the median. What do these two results suggest about the overall equation or model you calculated on the full sample---e.g. how appropriate the systematic part of the model is based on this information? In looking at your plot from part( a ) above describe why your results from this exercise are or are not surprising. 
+```{r}
+#values delow the median income
+below_income_median=subset(Districtdata,income<median(Districtdata$income))
+#values above the median income
+above_income_median=subset(Districtdata,income>median(Districtdata$income))
+
+Model1=lm(expend~income,data = below_income_median)
+Model2=lm(expend~income,data = above_income_median)
+
+modelsummary(list(Model1,Model2))
+```
+
+Both the data above and below the median show a linear positive relationship between the variale income and expend
+
+- f) do the same exercise but select if EXPEND is less than EXPEND’s median of 2800? Compare differences or similarities in the f’s results to ( a ) and to ( e ). Explain any differences you might observe.
+
+```{r}
+#values delow the median expend
+below_expend_median=subset(Districtdata,expend<median(Districtdata$expend))
+#values above the median expend
+above_expend_median=subset(Districtdata,expend>median(Districtdata$expend))
+
+Model3=lm(expend~income,data = below_expend_median)
+Model4=lm(expend~income,data = above_expend_median)
+
+modelsummary(list(Model3,Model4))
+```
+
+- g) estimate a model in which you predict “expend” simply by a best fitting constant and describe this model; what features of your model and information from “ b “ above makes you think your model in “b” is better  than your model in “g“ (or is it???). (Just some intuition as to why you think “a” or “b” is better). 
+
+```{r}
+Model5=lm(expend~1,data = above_expend_median)
+
+modelsummary(list(Model,Model5))
+```
+
+The model in "b" is considered better because it uses multiple predictor variables to predict the response variable and it fits the data better than the model in "g" which is a simple constant model based on the R squared.
+
+# Multivariate Models
+
+- a) describe the relations of COLGRAD and INCOME to EXPEND from the results of this new model. 
+```{r}
+#Multivariate model  
+Model6=lm(expend~income+colgrad,data = Districtdata)
+#model summary
+stargazer::stargazer(Model6,type = "text")
+```
+$Expend=1482.9 + 0.025Income + 16.693ColGrad$
+
+Keeping percentage of college graduate and income constant the expected expenditure is 1482.9. When income increases by a unit the expected expenditure increases by 0.025 and when percentage of college graduate between age of 25-39 increase by 1% the expeniture increases by 16.7.
+
+- b) explain why there is a difference between the effect of income on expenditure in Part 1 “b” above and what you see now in Problem 1.2. 
+```{r}
+#Comparison of the two models
+modelsummary(list(Model,Model6))
+```
+
+Based on the models the model includeing college graduate is better based on the R squared.
+The effect of income on expenditure may be moderated or controlled by the level of college graduates in the population. This means that the relationship between income and expenditure may differ depending on the percentage of college graduates in the population. The effect of income may be stronger or weaker in areas with higher or lower percentages of college graduates, respectively
+
+- c) standardize the two partial derivatives for the two independent variables and interpret their effects 
+```{r}
+#model with sacaled predictors
+Model7=lm(expend~scale(income)+scale(colgrad),data = Districtdata)
+modelsummary(list(Model6,Model7))
+```
+
+The estimated coefficients of the scaled predictors increasesd significantly and income seems to be a better significant contributer to increase in expenditure compared to percentage of college garaduates 
+
+- d) THOUGHT QUESTION: If there were basically no change in the magnitude of the coefficient for income what would you know or conclude about the relation between INCOME and COLGRAD? 
+
+It would suggest that the relationship between Income and Expend is not affected by the level of Colgrad in the population. It could also suggest that the relationship between Income and Expend is not affected by the level of COLGRAD in the population, or that the relationship between Income and Colgrad is weak or non-existent
+
+
+- e) THOUGHT or DO QUESTION: If we calculated INCOME as deviation from its mean (i.e. observed income minus mean of income) for each case what would change in your model in “1.2 a” (if anything) and why?
+```{r}
+#Deviation of income from its mean
+Deviation_income_mean=Districtdata$income-mean(Districtdata$income)
+#Model using income deviation from mean
+Model8=lm(expend~Deviation_income_mean,data = Districtdata)
+#model comparison
+modelsummary(list(Model6,Model8))
+```
+
+There is a slight difference(0.005) in the coefficent of income and deviation of income. 
+This change might be due to the fact that the coefficient for Income deviation from its mean would represent the change in Expend for a one unit change in Income deviation from the mean and not income in its absolute form.
+
+- f) calculate/describe the variance/covariance matrix for the 3 variables in this problem; also the standardized variance/covariance matrix for the same 3 variables.
+```{r}
+# variance and covariance of collegrad, expend and income
+cov(Districtdata[-2])
+
+#variance and covariance of standerdized collegrad, expend and income
+cov(scale(Districtdata[-2]))
+```
+
